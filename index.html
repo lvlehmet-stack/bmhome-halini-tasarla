@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>BM Home · Halını Tasarla (test sürümü)</title>
+<style>
+html,body{margin:0;background:#fff;color:#000}
+.sarmal{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.test-bandi{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 12px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:#000;color:#fff;font:400 12px/1.5 Lato,'Helvetica Neue',Arial,sans-serif;text-align:center}
+.test-bandi b{padding:1px 8px;border:1px solid #fff;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="test-bandi" lang="tr"><b>Test sürümü</b><span>Bu sayfa deneme aşamasındadır ve bmhome.com.tr'de henüz yayında değildir. Desen ve renk listesi örnektir, geliştirme sürdükçe değişecektir.</span></div>
+<div class="sarmal">
+<div class="bmt" id="bmt" lang="tr">
+  <header class="bmt-bas">
+    <h1>Halını Tasarla</h1>
+    <p class="bmt-lead">Bir desen seçin, desenin her alanına paletimizden bir renk verin. Önizlemedeki her renk, o rengin gerçek halı fotoğrafından gelir; gördüğünüz doku ve parlaklık halının kendisidir.</p>
+  </header>
+
+  <div class="bmt-studyo">
+    <div class="bmt-sahne-sutun">
+      <div class="bmt-sahne">
+        <div class="bmt-hali" id="bmt-hali">
+          <canvas class="bmt-tuval" id="bmt-tuval" width="900" height="1293" aria-label="Halı önizlemesi" role="img"></canvas>
+          <canvas class="bmt-gecis" id="bmt-gecis" width="900" height="1293" aria-hidden="true"></canvas>
+          <canvas class="bmt-vurgu" id="bmt-vurgu" width="225" height="323" aria-hidden="true"></canvas>
+          <img class="bmt-orijinal" id="bmt-orijinal" alt="Ürünün gerçek fotoğrafı" hidden>
+          <div class="bmt-kiyas-cizgi" id="bmt-kiyas-cizgi" hidden><span>Gerçek fotoğraf</span><span>Önizleme</span></div>
+          <div class="bmt-etiket" id="bmt-etiket" hidden></div>
+          <div class="bmt-lupa" id="bmt-lupa" hidden><canvas id="bmt-lupa-tuval" width="360" height="360"></canvas></div>
+          <div class="bmt-yukleniyor" id="bmt-yukleniyor" hidden><span></span></div>
+        </div>
+        <p class="bmt-durum" id="bmt-durum" aria-live="polite"></p>
+      </div>
+      <div class="bmt-araclar">
+        <button type="button" class="bmt-arac" id="bmt-yakin" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3 21 21M8 10.5h5M10.5 8v5"/></svg>Yakından bak
+        </button>
+        <button type="button" class="bmt-arac" id="bmt-kiyas" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17"/><path d="M12 2v20M7 9l-2 3 2 3M17 9l2 3-2 3"/></svg>Ürün fotoğrafıyla kıyasla
+        </button>
+      </div>
+      <label class="bmt-kiyas-ayar" id="bmt-kiyas-ayar" hidden>
+        <span>Kıyas çizgisi</span>
+        <input type="range" id="bmt-kiyas-kaydir" min="0" max="100" value="50">
+      </label>
+    </div>
+
+    <div class="bmt-panel">
+      <section class="bmt-adim" aria-labelledby="bmt-b1">
+        <h2 id="bmt-b1"><span class="bmt-no">1</span>Desen</h2>
+        <div class="bmt-desenler" id="bmt-desenler" role="radiogroup" aria-labelledby="bmt-b1"></div>
+      </section>
+
+      <section class="bmt-adim" aria-labelledby="bmt-b2">
+        <h2 id="bmt-b2"><span class="bmt-no">2</span>Renkler</h2>
+        <p class="bmt-ipucu">Önce boyanacak alanı, sonra rengi seçin. Halının üzerine dokunarak da alan seçebilirsiniz.</p>
+        <div class="bmt-alanlar" id="bmt-alanlar"></div>
+        <div class="bmt-palet-bas">
+          <p class="bmt-palet-ad" id="bmt-palet-ad" aria-live="polite"></p>
+          <button type="button" class="bmt-link" id="bmt-sifirla">Ürünün renklerine dön</button>
+        </div>
+        <div class="bmt-palet" id="bmt-palet"></div>
+      </section>
+
+      <section class="bmt-adim" aria-labelledby="bmt-b3">
+        <h2 id="bmt-b3"><span class="bmt-no">3</span>Ölçü</h2>
+        <div class="bmt-olculer" id="bmt-olculer" role="radiogroup" aria-labelledby="bmt-b3"></div>
+      </section>
+
+      <section class="bmt-sonuc" aria-labelledby="bmt-b4">
+        <h2 id="bmt-b4">Tasarımınız</h2>
+        <dl class="bmt-ozet" id="bmt-ozet"></dl>
+        <div class="bmt-eylemler">
+          <a class="bmt-btn bmt-btn--dolu bmt-wa" id="bmt-wa" href="https://wa.me/905380352061" target="_blank" rel="noopener">WhatsApp'tan teklif al</a>
+          <button type="button" class="bmt-btn" id="bmt-kopyala">Tasarım bağlantısını kopyala</button>
+          <button type="button" class="bmt-btn" id="bmt-kaydet" hidden>Görseli kaydet</button>
+        </div>
+        <p class="bmt-not">Önizleme, seçtiğiniz renklerin gerçek halı fotoğraflarından oluşturulur. Ekran ayarına göre küçük ton farkları olabilir; kesin renk için showroomumuzda iplik ve halı numunelerine bakabilirsiniz.</p>
+      </section>
+    </div>
+  </div>
+</div>
+<style>@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap');
+/* Yerleşim: solda (telefonda üstte, yapışkan) halı sahnesi, sağda sırayla Desen > Renkler > Ölçü > Tasarımınız.
+   Dil sitenin Yardım/Özel Tasarım sayfalarıyla aynı: beyaz zemin, siyah Lato, büyük harf başlık, #e8e5e5 ayraç, köşesiz düğme. */
+.bmt{--ink:#000;--muted:#666;--soft:#999;--line:#e8e5e5;--chip:#d6d2d2;--paper:#fff;--sahne:#f3f2ef;--ust:0px;
+  margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:lato,Lato,'Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:24px;text-align:left;-webkit-font-smoothing:antialiased}
+.bmt *,.bmt *::before,.bmt *::after{box-sizing:border-box}
+.bmt h1,.bmt h2,.bmt h3,.bmt p,.bmt dl,.bmt dt,.bmt dd{margin:0;padding:0}
+.bmt h1,.bmt h2,.bmt h3{font-family:inherit;letter-spacing:normal;color:var(--ink);text-wrap:balance}
+.bmt a{color:inherit;text-decoration:none}
+.bmt button{-webkit-appearance:none;appearance:none;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font:inherit;color:inherit;letter-spacing:inherit;text-transform:none;line-height:inherit;width:auto;height:auto;min-width:0;min-height:0;cursor:pointer;text-align:inherit}
+.bmt a:focus-visible,.bmt button:focus-visible,.bmt input:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.bmt img,.bmt canvas,.bmt svg{display:block;max-width:100%}
+.bmt [hidden]{display:none!important}
+
+/* Giriş */
+.bmt .bmt-bas{max-width:760px;margin:0 auto;padding:56px 0 0;text-align:center}
+.bmt h1{font-size:28px;line-height:36px;font-weight:900;text-transform:uppercase}
+.bmt .bmt-lead{max-width:640px;margin:14px auto 0;font-size:15px;line-height:26px}
+
+/* Stüdyo */
+.bmt .bmt-studyo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:start;max-width:1180px;margin:44px auto 0;padding-bottom:80px}
+.bmt .bmt-sahne-sutun{position:sticky;top:calc(var(--ust) + 24px)}
+.bmt .bmt-sahne{display:flex;flex-direction:column;align-items:center;gap:14px;padding:32px 24px 18px;background:var(--sahne)}
+.bmt .bmt-hali{position:relative;width:min(100%,calc((100vh - 230px) * .696));min-width:240px;max-width:100%;aspect-ratio:900/1293;background:#d9d4cc;
+  box-shadow:0 1px 2px rgba(30,24,18,.18),0 18px 30px -14px rgba(30,24,18,.45);touch-action:manipulation;cursor:pointer;-webkit-user-select:none;user-select:none}
+.bmt .bmt-hali canvas,.bmt .bmt-orijinal{position:absolute;left:0;top:0;width:100%;height:100%;max-width:none}
+.bmt .bmt-gecis{opacity:0}
+.bmt .bmt-gecis.is-in{opacity:1;transition:opacity .35s ease}
+.bmt .bmt-vurgu{opacity:0;pointer-events:none}
+.bmt .bmt-vurgu.is-on{animation:bmtVurgu .9s ease}
+@keyframes bmtVurgu{0%{opacity:0}30%{opacity:.5}100%{opacity:0}}
+.bmt .bmt-durum{min-height:20px;font-size:12px;line-height:20px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-align:center;color:var(--muted)}
+.bmt .bmt-durum b{color:var(--ink)}
+
+/* Halı üstü katmanlar: alan etiketi, büyüteç, yükleniyor, kıyas */
+.bmt .bmt-etiket{position:absolute;z-index:4;padding:3px 8px;background:var(--ink);color:#fff;font-size:11px;line-height:16px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;pointer-events:none;transform:translate(14px,14px)}
+.bmt .bmt-lupa{position:absolute;z-index:5;width:180px;height:180px;margin:-90px 0 0 -90px;border-radius:50%;overflow:hidden;pointer-events:none;box-shadow:0 0 0 2px #fff,0 8px 24px rgba(0,0,0,.35)}
+.bmt .bmt-lupa canvas{width:100%;height:100%}
+.bmt .bmt-hali.is-lupa{cursor:zoom-in;touch-action:none}
+.bmt .bmt-yukleniyor{position:absolute;z-index:3;left:0;right:0;top:0;height:3px;overflow:hidden;background:rgba(255,255,255,.4)}
+.bmt .bmt-yukleniyor span{position:absolute;top:0;bottom:0;width:40%;background:var(--ink);animation:bmtYuk 1s ease-in-out infinite}
+@keyframes bmtYuk{from{left:-40%}to{left:100%}}
+.bmt .bmt-orijinal{z-index:2;object-fit:cover;-webkit-clip-path:inset(0 calc(100% - var(--k,50%)) 0 0);clip-path:inset(0 calc(100% - var(--k,50%)) 0 0)}
+.bmt .bmt-kiyas-cizgi{position:absolute;z-index:3;top:0;bottom:0;left:var(--k,50%);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.35);pointer-events:none}
+.bmt .bmt-kiyas-cizgi::after{content:'';position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border:2px solid #fff;background:rgba(0,0,0,.35)}
+.bmt .bmt-kiyas-cizgi span{position:absolute;top:10px;padding:2px 6px;background:rgba(0,0,0,.65);color:#fff;font-size:10px;line-height:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.bmt .bmt-kiyas-cizgi span:first-child{right:10px}
+.bmt .bmt-kiyas-cizgi span:last-child{left:10px}
+.bmt .bmt-hali.is-kiyas{cursor:ew-resize;touch-action:none}
+
+.bmt .bmt-araclar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 24px;margin-top:14px}
+.bmt .bmt-arac{display:inline-flex;align-items:center;gap:8px;min-height:36px;font-size:12px;line-height:16px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);transition:color .2s ease}
+.bmt .bmt-arac svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.4}
+.bmt .bmt-arac:hover,.bmt .bmt-arac[aria-pressed="true"]{color:var(--ink)}
+.bmt .bmt-arac[aria-pressed="true"]{text-decoration:underline;text-underline-offset:5px}
+.bmt .bmt-kiyas-ayar{display:flex;align-items:center;gap:12px;max-width:360px;margin:10px auto 0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.bmt .bmt-kiyas-ayar input{flex:1;accent-color:var(--ink)}
+
+/* Panel ve adımlar */
+.bmt .bmt-panel{display:flex;flex-direction:column;gap:30px;min-width:0}
+.bmt .bmt-adim{display:flex;flex-direction:column;gap:16px;padding-bottom:30px;border-bottom:1px solid var(--line)}
+.bmt h2{display:flex;align-items:center;gap:12px;font-size:16px;line-height:20px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}
+.bmt .bmt-no{display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border:1px solid var(--ink);font-size:13px;line-height:1;font-weight:700}
+.bmt .bmt-ipucu{margin-top:-6px;font-size:13px;line-height:22px;color:var(--muted)}
+
+.bmt .bmt-desenler{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:14px 12px}
+.bmt .bmt-desen{display:flex;flex-direction:column;gap:8px}
+.bmt .bmt-desen img{width:100%;height:auto;aspect-ratio:240/345;object-fit:cover;outline:1px solid transparent;outline-offset:3px;transition:outline-color .2s ease}
+.bmt .bmt-desen:hover img{outline-color:var(--chip)}
+.bmt .bmt-desen[aria-checked="true"] img{outline:2px solid var(--ink)}
+.bmt .bmt-desen b{display:block;font-size:12px;line-height:16px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.bmt .bmt-desen small{display:block;font-size:11px;line-height:14px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em}
+
+.bmt .bmt-alanlar{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.bmt .bmt-alan{display:flex;align-items:center;gap:12px;min-width:0;padding:9px 12px 9px 9px;border:1px solid var(--chip);background:var(--paper);transition:border-color .2s ease,box-shadow .2s ease}
+.bmt .bmt-alan:hover{border-color:var(--ink)}
+.bmt .bmt-alan[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.bmt .bmt-alan i{flex:none;width:38px;height:38px;background:var(--sahne) center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
+.bmt .bmt-alan span{display:flex;flex-direction:column;min-width:0}
+.bmt .bmt-alan b{font-size:11px;line-height:16px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.bmt .bmt-alan em{overflow:hidden;font-style:normal;font-size:13px;line-height:18px;white-space:nowrap;text-overflow:ellipsis}
+.bmt .bmt-alan em small{font-size:11px;color:var(--soft)}
+
+.bmt .bmt-palet-bas{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;min-height:22px}
+.bmt .bmt-palet-ad{font-size:13px;line-height:22px;color:var(--muted)}
+.bmt .bmt-palet-ad b{color:var(--ink);font-weight:700}
+.bmt .bmt-link{padding-bottom:1px;border-bottom:1px solid currentColor;font-size:12px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.bmt .bmt-link:hover{color:var(--ink)}
+.bmt .bmt-palet{display:flex;flex-direction:column;gap:16px}
+.bmt .bmt-grup{display:flex;flex-direction:column;gap:8px}
+.bmt .bmt-grup h3{font-size:11px;line-height:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.bmt .bmt-renkler{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:6px}
+.bmt .bmt-renk{position:relative;aspect-ratio:1;max-width:100%;background:var(--sahne) center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);transition:transform .15s ease}
+.bmt .bmt-renk:hover{transform:scale(1.06)}
+.bmt .bmt-renk[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:2px}
+.bmt .bmt-renk[aria-pressed="true"]::after{content:'';position:absolute;right:3px;bottom:3px;width:14px;height:14px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.2 5.8 10 11 4' fill='none' stroke='%23000' stroke-width='1.8'/%3E%3C/svg%3E") center/12px no-repeat}
+.bmt .bmt-renk.is-baska::before{content:'';position:absolute;left:4px;top:4px;width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+
+.bmt .bmt-olculer{display:flex;flex-wrap:wrap;gap:8px}
+.bmt .bmt-cip{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border:1px solid var(--chip);background:var(--paper);font-size:13px;line-height:1.2;font-variant-numeric:tabular-nums;transition:border-color .2s ease,background .2s ease,color .2s ease}
+.bmt .bmt-cip:hover{border-color:var(--ink)}
+.bmt .bmt-cip[aria-checked="true"]{border-color:var(--ink);background:var(--ink);color:#fff}
+
+/* Sonuç */
+.bmt .bmt-sonuc{display:flex;flex-direction:column;gap:18px}
+.bmt .bmt-ozet{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 20px;padding:18px 20px;border:1px solid var(--line)}
+.bmt .bmt-ozet dt{font-size:11px;line-height:22px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.bmt .bmt-ozet dd{font-size:14px;line-height:22px}
+.bmt .bmt-ozet dd small{color:var(--soft);font-size:12px;font-variant-numeric:tabular-nums}
+.bmt .bmt-eylemler{display:flex;flex-wrap:wrap;gap:10px}
+.bmt .bmt-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 26px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font-size:13px;line-height:1.2;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:center;transition:background .25s ease,color .25s ease}
+.bmt .bmt-btn:hover{background:var(--ink);color:#fff}
+.bmt .bmt-btn--dolu{background:var(--ink);color:#fff}
+.bmt .bmt-btn--dolu:hover{background:var(--paper);color:var(--ink)}
+.bmt .bmt-wa::before{content:'';flex:none;width:20px;height:20px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.2a9.75 9.75 0 0 0-8.4 14.7L2.2 21.8l5-1.3A9.75 9.75 0 1 0 12 2.2zm0 1.8a7.95 7.95 0 1 1-4.1 14.8l-.3-.2-3 .8.8-2.9-.2-.3A7.95 7.95 0 0 1 12 4zM8.7 7.4c-.2 0-.5 0-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3 2.4.9 2.9.8 3.4.7.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.5-.3l-1.9-.9c-.3-.1-.4-.1-.6.1l-.8 1c-.2.2-.3.2-.6.1-.3-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.5-1.8-.2-.3 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.4.1-.2 0-.4 0-.5l-.9-2.1c-.2-.5-.4-.5-.6-.5h-.5z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.2a9.75 9.75 0 0 0-8.4 14.7L2.2 21.8l5-1.3A9.75 9.75 0 1 0 12 2.2zm0 1.8a7.95 7.95 0 1 1-4.1 14.8l-.3-.2-3 .8.8-2.9-.2-.3A7.95 7.95 0 0 1 12 4zM8.7 7.4c-.2 0-.5 0-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3 2.4.9 2.9.8 3.4.7.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.5-.3l-1.9-.9c-.3-.1-.4-.1-.6.1l-.8 1c-.2.2-.3.2-.6.1-.3-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.5-1.8-.2-.3 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.4.1-.2 0-.4 0-.5l-.9-2.1c-.2-.5-.4-.5-.6-.5h-.5z'/%3E%3C/svg%3E") center/contain no-repeat}
+.bmt .bmt-not{font-size:12px;line-height:20px;color:var(--muted)}
+
+/* Tablet ve telefon: sahne üstte yapışkan, halı yüksekliğe göre */
+@media (max-width:899px){
+  .bmt .bmt-studyo{grid-template-columns:minmax(0,1fr);gap:28px;margin-top:28px}
+  .bmt .bmt-sahne-sutun{z-index:5;top:var(--ust);margin:0 -16px;background:var(--paper);box-shadow:0 1px 0 var(--line)}
+  .bmt .bmt-sahne{position:relative;gap:8px;padding:14px 64px 8px}
+  .bmt .bmt-hali{width:auto;min-width:0;height:min(46vh,430px,calc((100vw - 128px) / .696))}
+  .bmt .bmt-araclar{position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:14px;flex-direction:column;gap:6px;margin:0}
+  .bmt .bmt-arac{justify-content:center;width:44px;height:44px;border:1px solid var(--line);background:var(--paper);font-size:0;gap:0}
+  .bmt .bmt-arac svg{width:22px;height:22px}
+  .bmt .bmt-arac[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:#fff}
+  .bmt .bmt-kiyas-ayar{margin:0 auto;padding:0 16px 10px}
+  .bmt .bmt-lupa{width:140px;height:140px;margin:-150px 0 0 -70px}
+}
+@media (max-width:767px){
+  .bmt .bmt-bas{padding-top:32px}
+  .bmt h1{font-size:22px;line-height:28px}
+  .bmt .bmt-lead{font-size:14px;line-height:23px}
+  .bmt .bmt-desenler{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 8px}
+  .bmt .bmt-alanlar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .bmt .bmt-alan{gap:8px;padding:7px 8px 7px 7px}
+  .bmt .bmt-alan i{width:32px;height:32px}
+  .bmt .bmt-renkler{grid-template-columns:repeat(auto-fill,minmax(38px,1fr))}
+  .bmt .bmt-btn{width:100%}
+  .bmt .bmt-ozet{padding:14px 16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .bmt .bmt-gecis.is-in,.bmt .bmt-renk{transition:none}
+  .bmt .bmt-vurgu.is-on,.bmt .bmt-yukleniyor span{animation:none}
+}
+</style>
+<script>
+/* bmhome · Halını Tasarla
+   Katman sırası (her çizimde): 1) zemin alanının rengindeki düz halı fotoğrafı
+   2) diğer her alan için kendi renginin düz halı fotoğrafı, alanın maskesiyle kesilip üste
+   3) desenin gölge katmanı (renk geçişlerindeki oyuk + kenar biyesi) "multiply" ile.
+   Renk boyanmaz; her piksel gerçek bir halı fotoğrafından gelir.
+   Renkler ve desenler KOK/katalog.json'dan okunur; yeni renk/desen eklemek sayfa kodunu değiştirmez. */
+(function () {
+  'use strict';
+  var KOK = /*__KOK__*/ 'veri/';
+  var SAYFA = location.origin + location.pathname;
+  var WA_NO = '905380352061';
+  var OLCULER = ['80 × 150', '120 × 180', '160 × 230', '200 × 290', '240 × 340', 'Özel ölçü'];
+
+  if (!document.getElementById('bmt')) return;
+  fetch(KOK + 'katalog.json', { cache: 'no-cache' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(basla)
+    .catch(function () { document.getElementById('bmt-durum').textContent = 'Renk kataloğu yüklenemedi, sayfayı yenileyin.'; });
+
+  function basla(VERI) {
+  var W = VERI.olcu[0], H = VERI.olcu[1];
+  var $ = function (ad) { return document.getElementById('bmt-' + ad); };
+  var azHareket = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var renkler = {};
+  VERI.renkler.forEach(function (r) { renkler[r.kod] = r; });
+  var desenler = {};
+  VERI.desenler.forEach(function (d) { desenler[d.id] = d; });
+
+  var durum = { desen: null, renk: [], alan: 0, olcu: '160 × 230', kiyas: false, lupa: false };
+
+  function el(etiket, sinif, html) {
+    var e = document.createElement(etiket);
+    if (sinif) e.className = sinif;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+  function kacis(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function varsayilan(d) { return d.alanlar.map(function (a) { return a.varsayilan; }); }
+
+  /* ---------- Görseller: her dosya bir kez yüklenir ---------- */
+  var onbellek = {};
+  function yukle(yol) {
+    if (!onbellek[yol]) {
+      onbellek[yol] = new Promise(function (ok, hata) {
+        var im = new Image();
+        im.crossOrigin = 'anonymous'; // Ticimax CDN'i izin veriyor; tuval "kirlenmez", görsel kaydedilebilir
+        im.decoding = 'async';
+        im.onload = function () { ok(im); };
+        im.onerror = function () { delete onbellek[yol]; hata(new Error(yol)); };
+        im.src = KOK + yol;
+      });
+    }
+    return onbellek[yol];
+  }
+  function dokuYolu(kod) { return 'doku/' + kod + '.jpg'; }
+
+  /* ---------- Çizim ---------- */
+  var tuval = $('tuval'), gecis = $('gecis'), ara = document.createElement('canvas');
+  ara.width = W; ara.height = H;
+  var cizimNo = 0, ilk = true;
+
+  function bilesik(c, dokular, maskeler, golge) {
+    c.globalCompositeOperation = 'source-over';
+    c.drawImage(dokular[0], 0, 0, W, H);
+    var a = ara.getContext('2d');
+    for (var i = 1; i < dokular.length; i++) {
+      a.globalCompositeOperation = 'source-over';
+      a.clearRect(0, 0, W, H);
+      a.drawImage(dokular[i], 0, 0, W, H);
+      a.globalCompositeOperation = 'destination-in';
+      a.drawImage(maskeler[i], 0, 0, W, H);
+      c.drawImage(ara, 0, 0);
+    }
+    c.globalCompositeOperation = 'multiply';
+    c.drawImage(golge, 0, 0, W, H);
+    c.globalCompositeOperation = 'source-over';
+  }
+
+  function ciz() {
+    var no = ++cizimNo, d = durum.desen, kodlar = durum.renk.slice();
+    var bekle = setTimeout(function () { $('yukleniyor').hidden = false; }, 160);
+    return Promise.all([
+      Promise.all(kodlar.map(function (k) { return yukle(dokuYolu(k)); })),
+      Promise.all(d.alanlar.map(function (a) { return a.maske ? yukle(a.maske) : null; })),
+      yukle(d.golge)
+    ]).then(function (s) {
+      if (no !== cizimNo) return;
+      bilesik(gecis.getContext('2d'), s[0], s[1], s[2]);
+      if (ilk || azHareket) { ilk = false; aktar(); return; }
+      gecis.classList.remove('is-in');
+      void gecis.offsetWidth;
+      gecis.classList.add('is-in');
+      setTimeout(function () { if (no === cizimNo) aktar(); }, 380);
+    }).catch(function () {
+      if (no === cizimNo) $('durum').textContent = 'Görsel yüklenemedi, bağlantınızı kontrol edip tekrar deneyin.';
+    }).then(function () {
+      clearTimeout(bekle);
+      if (no === cizimNo) $('yukleniyor').hidden = true;
+    });
+  }
+  function aktar() {
+    tuval.getContext('2d').drawImage(gecis, 0, 0);
+    gecis.classList.remove('is-in');
+  }
+
+  /* Seçilen alanı halının üzerinde kısa bir parlamayla göster */
+  function vurgula(i) {
+    var v = $('vurgu'), c = v.getContext('2d'), d = durum.desen;
+    var maskeler = d.alanlar.map(function (a) { return a.maske ? yukle(a.maske) : null; });
+    Promise.all(maskeler).then(function (m) {
+      if (d !== durum.desen) return;
+      c.globalCompositeOperation = 'source-over';
+      c.clearRect(0, 0, v.width, v.height);
+      c.fillStyle = '#fff';
+      c.fillRect(0, 0, v.width, v.height);
+      if (i > 0) {
+        c.globalCompositeOperation = 'destination-in';
+        c.drawImage(m[i], 0, 0, v.width, v.height);
+      } else {
+        c.globalCompositeOperation = 'destination-out';
+        for (var j = 1; j < m.length; j++) c.drawImage(m[j], 0, 0, v.width, v.height);
+      }
+      c.globalCompositeOperation = 'source-over';
+      v.classList.remove('is-on');
+      void v.offsetWidth;
+      v.classList.add('is-on');
+    });
+  }
+
+  /* ---------- Desen seçimi ---------- */
+  var desenKutu = $('desenler');
+  VERI.desenler.forEach(function (d) {
+    var b = el('button', 'bmt-desen');
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.dataset.id = d.id;
+    b.innerHTML = '<img src="' + KOK + d.kapak + '" alt="" loading="lazy" width="240" height="345"><span><b>' + kacis(d.ad) + '</b><small>' + kacis(d.koleksiyon) + '</small></span>';
+    b.addEventListener('click', function () { desenSec(d.id); });
+    desenKutu.appendChild(b);
+  });
+
+  function desenSec(id, kodlar) {
+    var d = desenler[id] || VERI.desenler[0];
+    durum.desen = d;
+    durum.renk = kodlar && kodlar.length === d.alanlar.length ? kodlar : varsayilan(d);
+    durum.alan = 0;
+    kiyasKapat();
+    [].forEach.call(desenKutu.children, function (b) { b.setAttribute('aria-checked', String(b.dataset.id === d.id)); });
+    alanlariKur();
+    guncelle();
+    ciz();
+  }
+
+  /* ---------- Alanlar ---------- */
+  var alanKutu = $('alanlar');
+  function alanlariKur() {
+    alanKutu.innerHTML = '';
+    durum.desen.alanlar.forEach(function (a, i) {
+      var b = el('button', 'bmt-alan');
+      b.type = 'button';
+      b.addEventListener('click', function () { alanSec(i); });
+      alanKutu.appendChild(b);
+    });
+  }
+  function alanSec(i) {
+    durum.alan = i;
+    guncelle();
+    vurgula(i);
+  }
+
+  /* ---------- Palet ---------- */
+  var paletKutu = $('palet'), paletAd = $('palet-ad');
+  VERI.gruplar.forEach(function (g) {
+    var uyeler = VERI.renkler.filter(function (r) { return r.grup === g.id; });
+    if (!uyeler.length) return;
+    var grup = el('div', 'bmt-grup', '<h3>' + kacis(g.ad) + '</h3>');
+    var izgara = el('div', 'bmt-renkler');
+    uyeler.forEach(function (r) {
+      var b = el('button', 'bmt-renk');
+      b.type = 'button';
+      b.dataset.kod = r.kod;
+      b.title = r.ad + ' · ' + r.kod;
+      b.setAttribute('aria-label', r.ad + ', renk kodu ' + r.kod);
+      b.style.backgroundImage = 'url("' + KOK + 'kucuk/' + r.kod + '.jpg")';
+      b.addEventListener('click', function () { renkSec(r.kod); });
+      b.addEventListener('pointerenter', function () { adGoster(r); yukle(dokuYolu(r.kod)); });
+      b.addEventListener('focus', function () { adGoster(r); });
+      izgara.appendChild(b);
+    });
+    grup.appendChild(izgara);
+    paletKutu.appendChild(grup);
+  });
+  paletKutu.addEventListener('pointerleave', function () { adGoster(null); });
+
+  function adGoster(r) {
+    var alan = durum.desen.alanlar[durum.alan].ad;
+    r = r || renkler[durum.renk[durum.alan]];
+    paletAd.innerHTML = kacis(alan) + ': <b>' + kacis(r.ad) + '</b> · ' + r.kod;
+  }
+
+  function renkSec(kod) {
+    if (durum.renk[durum.alan] === kod) return;
+    durum.renk[durum.alan] = kod;
+    kiyasKapat();
+    guncelle();
+    ciz();
+  }
+
+  $('sifirla').addEventListener('click', function () {
+    durum.renk = varsayilan(durum.desen);
+    guncelle();
+    ciz();
+  });
+
+  /* ---------- Ölçü ---------- */
+  var olcuKutu = $('olculer');
+  OLCULER.forEach(function (o) {
+    var b = el('button', 'bmt-cip', kacis(o) + (o.indexOf('×') > 0 ? ' cm' : ''));
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.dataset.olcu = o;
+    b.addEventListener('click', function () { durum.olcu = o; guncelle(); });
+    olcuKutu.appendChild(b);
+  });
+
+  /* ---------- Ekranı durumla eşitle ---------- */
+  function tasarimKodu() {
+    return durum.desen.id + ':' + durum.renk.join(',') + ':' + durum.olcu.replace(/ × /, 'x').replace('Özel ölçü', 'ozel');
+  }
+  function olcuMetni() { return durum.olcu.indexOf('×') > 0 ? durum.olcu + ' cm' : 'Özel ölçü (görüşelim)'; }
+
+  function guncelle() {
+    var d = durum.desen, aktif = durum.renk[durum.alan];
+    [].forEach.call(alanKutu.children, function (b, i) {
+      var r = renkler[durum.renk[i]];
+      b.setAttribute('aria-pressed', String(i === durum.alan));
+      b.innerHTML = '<i style="background-image:url(&quot;' + KOK + 'kucuk/' + r.kod + '.jpg&quot;)"></i><span><b>' + kacis(d.alanlar[i].ad) + '</b><em>' + kacis(r.ad) + ' <small>' + r.kod + '</small></em></span>';
+    });
+    [].forEach.call(paletKutu.querySelectorAll('.bmt-renk'), function (b) {
+      var kod = b.dataset.kod;
+      b.setAttribute('aria-pressed', String(kod === aktif));
+      b.classList.toggle('is-baska', kod !== aktif && durum.renk.indexOf(kod) >= 0);
+    });
+    [].forEach.call(olcuKutu.children, function (b) { b.setAttribute('aria-checked', String(b.dataset.olcu === durum.olcu)); });
+    adGoster(null);
+    $('durum').innerHTML = '<b>' + kacis(d.alanlar[durum.alan].ad) + '</b> · ' + kacis(renkler[aktif].ad);
+    $('sifirla').hidden = durum.renk.join() === varsayilan(d).join();
+
+    var ozet = '<dt>Desen</dt><dd>' + kacis(d.ad) + ' <small>' + kacis(d.koleksiyon) + '</small></dd>';
+    d.alanlar.forEach(function (a, i) {
+      var r = renkler[durum.renk[i]];
+      ozet += '<dt>' + kacis(a.ad) + '</dt><dd>' + kacis(r.ad) + ' <small>' + r.kod + '</small></dd>';
+    });
+    ozet += '<dt>Ölçü</dt><dd>' + kacis(olcuMetni()) + '</dd>';
+    $('ozet').innerHTML = ozet;
+
+    var mesaj = 'Merhaba, bmhome "Halını Tasarla" sayfasında bir tasarım yaptım:\n' +
+      'Desen: ' + d.ad + ' (' + d.koleksiyon + ')\n' +
+      d.alanlar.map(function (a, i) { var r = renkler[durum.renk[i]]; return a.ad + ': ' + r.ad + ' (' + r.kod + ')'; }).join('\n') + '\n' +
+      'Ölçü: ' + olcuMetni() + '\n' +
+      'Tasarım: ' + SAYFA + '#tasarim=' + tasarimKodu();
+    $('wa').href = 'https://wa.me/' + WA_NO + '?text=' + encodeURIComponent(mesaj);
+    try { history.replaceState(null, '', '#tasarim=' + tasarimKodu()); } catch (e) {}
+  }
+
+  /* ---------- Halı üzerinde: alan seçme, etiket, büyüteç, kıyas ---------- */
+  var hali = $('hali'), etiket = $('etiket'), lupa = $('lupa'), surukle = false;
+  function konum(e) {
+    var r = hali.getBoundingClientRect();
+    return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)), r: r };
+  }
+  function alanNo(k) {
+    var h = durum.desen.harita;
+    return +h.v.charAt(Math.min(h.y - 1, Math.floor(k.y * h.y)) * h.g + Math.min(h.g - 1, Math.floor(k.x * h.g)));
+  }
+  function lupaCiz(k) {
+    var lc = $('lupa-tuval'), c = lc.getContext('2d');
+    var boy = lupa.offsetWidth || 180, buyutme = 2.6;
+    var kaynak = boy / buyutme * (W / k.r.width);
+    c.fillStyle = '#d9d4cc';
+    c.fillRect(0, 0, lc.width, lc.height);
+    c.drawImage(tuval, k.x * W - kaynak / 2, k.y * H - kaynak / 2, kaynak, kaynak, 0, 0, lc.width, lc.height);
+    lupa.style.left = k.x * 100 + '%';
+    lupa.style.top = k.y * 100 + '%';
+  }
+  function kiyasCiz(k) {
+    var deger = Math.round(k.x * 1000) / 10;
+    hali.style.setProperty('--k', deger + '%');
+    $('kiyas-kaydir').value = deger;
+  }
+
+  hali.addEventListener('pointerdown', function (e) {
+    if (!durum.kiyas && !durum.lupa) return;
+    surukle = true;
+    try { hali.setPointerCapture(e.pointerId); } catch (x) {}
+    var k = konum(e);
+    if (durum.kiyas) kiyasCiz(k);
+    else { lupa.hidden = false; lupaCiz(k); }
+  });
+  hali.addEventListener('pointermove', function (e) {
+    var k = konum(e);
+    if (durum.kiyas) { if (surukle) kiyasCiz(k); return; }
+    if (durum.lupa) {
+      if (e.pointerType === 'mouse' || surukle) { lupa.hidden = false; lupaCiz(k); }
+      return;
+    }
+    if (e.pointerType !== 'mouse') return;
+    etiket.hidden = false;
+    etiket.textContent = durum.desen.alanlar[alanNo(k)].ad;
+    etiket.style.left = k.x * 100 + '%';
+    etiket.style.top = k.y * 100 + '%';
+  });
+  function birak(e) {
+    surukle = false;
+    if (e.type === 'pointerleave' || e.pointerType !== 'mouse') lupa.hidden = true;
+    if (e.type === 'pointerleave') etiket.hidden = true;
+  }
+  hali.addEventListener('pointerup', birak);
+  hali.addEventListener('pointercancel', birak);
+  hali.addEventListener('pointerleave', birak);
+  hali.addEventListener('click', function (e) {
+    if (durum.kiyas) return;
+    alanSec(alanNo(konum(e)));
+  });
+
+  $('yakin').addEventListener('click', function () {
+    durum.lupa = !durum.lupa;
+    if (durum.lupa) kiyasKapat();
+    this.setAttribute('aria-pressed', String(durum.lupa));
+    hali.classList.toggle('is-lupa', durum.lupa);
+    lupa.hidden = true;
+    etiket.hidden = true;
+  });
+
+  /* Kıyas: desenin ürün renkleriyle üretilen önizleme ile ürünün gerçek fotoğrafı yan yana */
+  $('kiyas').addEventListener('click', function () {
+    if (durum.kiyas) { kiyasKapat(); return; }
+    var d = durum.desen;
+    if (durum.renk.join() !== varsayilan(d).join()) { durum.renk = varsayilan(d); guncelle(); ciz(); }
+    durum.kiyas = true;
+    durum.lupa = false;
+    $('yakin').setAttribute('aria-pressed', 'false');
+    hali.classList.remove('is-lupa');
+    hali.classList.add('is-kiyas');
+    hali.style.setProperty('--k', '50%');
+    $('kiyas-kaydir').value = 50;
+    this.setAttribute('aria-pressed', 'true');
+    $('orijinal').src = KOK + d.orijinal;
+    $('orijinal').hidden = false;
+    $('kiyas-cizgi').hidden = false;
+    $('kiyas-ayar').hidden = false;
+    etiket.hidden = true;
+  });
+  function kiyasKapat() {
+    if (!durum.kiyas) return;
+    durum.kiyas = false;
+    hali.classList.remove('is-kiyas');
+    $('kiyas').setAttribute('aria-pressed', 'false');
+    $('orijinal').hidden = true;
+    $('kiyas-cizgi').hidden = true;
+    $('kiyas-ayar').hidden = true;
+  }
+  $('kiyas-kaydir').addEventListener('input', function () { hali.style.setProperty('--k', this.value + '%'); });
+
+  /* ---------- Teklif, bağlantı, görsel ---------- */
+  $('wa').addEventListener('click', function () {
+    try { if (typeof window.gtag === 'function') window.gtag('event', 'whatsapp_click', { link_location: 'halini_tasarla', desen: durum.desen.id }); } catch (e) {}
+  });
+
+  $('kopyala').addEventListener('click', function () {
+    var b = this, link = SAYFA + '#tasarim=' + tasarimKodu(), eski = 'Tasarım bağlantısını kopyala';
+    function tamam(metin) { b.textContent = metin; setTimeout(function () { b.textContent = eski; }, 2200); }
+    function eldenKopyala() {
+      var t = el('textarea');
+      t.value = link;
+      t.setAttribute('readonly', '');
+      t.style.position = 'fixed';
+      t.style.opacity = '0';
+      document.body.appendChild(t);
+      t.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(t);
+      if (ok) tamam('Bağlantı kopyalandı');
+      else { $('durum').textContent = link; tamam('Bağlantı halının altında'); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(function () { tamam('Bağlantı kopyalandı'); }, eldenKopyala);
+    } else eldenKopyala();
+  });
+
+  // Görsel indirme yalnızca sitenin kendi sayfasında (gömülü önizlemelerde tarayıcı indirmeyi engeller)
+  try { if (window.self === window.top) $('kaydet').hidden = false; } catch (e) {}
+  $('kaydet').addEventListener('click', function () {
+    tuval.toBlob(function (blob) {
+      if (!blob) return;
+      var a = el('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'bmhome-' + durum.desen.id + '-' + durum.renk.join('-') + '.jpg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    }, 'image/jpeg', 0.9);
+  });
+
+  /* ---------- Başlangıç: bağlantıdaki tasarım ya da ilk desen ---------- */
+  var m = /tasarim=([a-z0-9-]+):([0-9,]+):([0-9x]+|ozel)/.exec(location.hash);
+  if (m) {
+    var olcu = m[3] === 'ozel' ? 'Özel ölçü' : m[3].replace('x', ' × ');
+    if (OLCULER.indexOf(olcu) >= 0) durum.olcu = olcu;
+    var kodlar = m[2].split(',').filter(function (k) { return renkler[k]; });
+    desenSec(m[1], kodlar);
+  } else desenSec(VERI.desenler[0].id);
+  }
+})();
+</script>
+</div>
+</body>
+</html>
