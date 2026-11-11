@@ -60,6 +60,10 @@ html,body{margin:0;background:#fff;color:#000}
       <section class="bmt-adim" aria-labelledby="bmt-b2">
         <h2 id="bmt-b2"><span class="bmt-no">2</span>Renkler</h2>
         <p class="bmt-ipucu">Önce boyanacak alanı, sonra rengi seçin. Halının üzerine dokunarak da alan seçebilirsiniz.</p>
+        <div class="bmt-hazir" id="bmt-hazir" hidden>
+          <p class="bmt-hazir-bas">Bu desenin hazır renkleri</p>
+          <div class="bmt-hazir-liste"></div>
+        </div>
         <div class="bmt-alanlar" id="bmt-alanlar"></div>
         <div class="bmt-palet-bas">
           <p class="bmt-palet-ad" id="bmt-palet-ad" aria-live="polite"></p>
@@ -159,6 +163,13 @@ html,body{margin:0;background:#fff;color:#000}
 .bmt .bmt-desen b{display:block;font-size:12px;line-height:16px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
 .bmt .bmt-desen small{display:block;font-size:11px;line-height:14px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em}
 
+.bmt .bmt-hazir{display:flex;flex-direction:column;gap:8px}
+.bmt .bmt-hazir-bas{font-size:11px;line-height:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.bmt .bmt-hazir-liste{display:flex;flex-wrap:wrap;gap:8px}
+.bmt .bmt-hazir-cip{display:flex;padding:4px;border:1px solid var(--chip);background:var(--paper);transition:border-color .2s ease,box-shadow .2s ease}
+.bmt .bmt-hazir-cip:hover{border-color:var(--ink)}
+.bmt .bmt-hazir-cip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.bmt .bmt-hazir-cip i{width:16px;height:30px;background:var(--sahne) center/cover no-repeat}
 .bmt .bmt-alanlar{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
 .bmt .bmt-alan{display:flex;align-items:center;gap:12px;min-width:0;padding:9px 12px 9px 9px;border:1px solid var(--chip);background:var(--paper);transition:border-color .2s ease,box-shadow .2s ease}
 .bmt .bmt-alan:hover{border-color:var(--ink)}
@@ -239,17 +250,19 @@ html,body{margin:0;background:#fff;color:#000}
    2) diğer her alan için kendi renginin düz halı fotoğrafı, alanın maskesiyle kesilip üste
    3) desenin gölge katmanı (renk geçişlerindeki oyuk + kenar biyesi) "multiply" ile.
    Renk boyanmaz; her piksel gerçek bir halı fotoğrafından gelir.
-   Renkler ve desenler KOK/katalog.json'dan okunur; yeni renk/desen eklemek sayfa kodunu değiştirmez. */
+   Renkler ve desenler katalogdan gelir: sayfaya gömülüyse (Ticimax yalnız görsel dosya kabul ediyor) oradan,
+   değilse KOK/katalog.json'dan. Görseller her zaman KOK altındadır. */
 (function () {
   'use strict';
-  var KOK = /*__KOK__*/ 'veri/';
+  var KOK = 'veri/';
+  var GOMULU_KATALOG = /*__KATALOG__*/ null;
   var SAYFA = location.origin + location.pathname;
   var WA_NO = '905380352061';
   var OLCULER = ['80 × 150', '120 × 180', '160 × 230', '200 × 290', '240 × 340', 'Özel ölçü'];
 
   if (!document.getElementById('bmt')) return;
-  fetch(KOK + 'katalog.json', { cache: 'no-cache' })
-    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+  (GOMULU_KATALOG ? Promise.resolve(GOMULU_KATALOG) : fetch(KOK + 'katalog.json', { cache: 'no-cache' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }))
     .then(basla)
     .catch(function () { document.getElementById('bmt-durum').textContent = 'Renk kataloğu yüklenemedi, sayfayı yenileyin.'; });
 
@@ -385,10 +398,29 @@ html,body{margin:0;background:#fff;color:#000}
     alanlariKur();
     guncelle();
     ciz();
+    haritaHazirla(d);
   }
 
-  /* ---------- Alanlar ---------- */
-  var alanKutu = $('alanlar');
+  /* Dokunulan noktanın hangi alan olduğu: maskelerden küçük bir alan haritası (desen başına bir kez) */
+  var haritalar = {};
+  function haritaHazirla(d) {
+    if (haritalar[d.id]) return;
+    Promise.all(d.alanlar.map(function (a) { return a.maske ? yukle(a.maske) : null; })).then(function (m) {
+      var g = Math.round(W / 8), y = Math.round(H / 8), c = document.createElement('canvas');
+      c.width = g; c.height = y;
+      var x = c.getContext('2d', { willReadFrequently: true }), v = new Uint8Array(g * y);
+      for (var i = 1; i < m.length; i++) {
+        x.clearRect(0, 0, g, y);
+        x.drawImage(m[i], 0, 0, g, y);
+        var p = x.getImageData(0, 0, g, y).data;
+        for (var j = 0; j < v.length; j++) if (p[j * 4 + 3] > 127) v[j] = i;
+      }
+      haritalar[d.id] = { g: g, y: y, v: v };
+    }).catch(function () {});
+  }
+
+  /* ---------- Alanlar ve desenin hazır renkleri ---------- */
+  var alanKutu = $('alanlar'), hazirKutu = $('hazir');
   function alanlariKur() {
     alanKutu.innerHTML = '';
     durum.desen.alanlar.forEach(function (a, i) {
@@ -397,6 +429,29 @@ html,body{margin:0;background:#fff;color:#000}
       b.addEventListener('click', function () { alanSec(i); });
       alanKutu.appendChild(b);
     });
+    var liste = hazirKutu.querySelector('.bmt-hazir-liste');
+    liste.innerHTML = '';
+    hazirKutu.hidden = !(durum.desen.hazir && durum.desen.hazir.length);
+    (durum.desen.hazir || []).forEach(function (h) {
+      var b = el('button', 'bmt-hazir-cip', h.kodlar.map(function (k) {
+        return '<i style="background-image:url(&quot;' + KOK + 'kucuk/' + k + '.jpg&quot;)"></i>';
+      }).join(''));
+      b.type = 'button';
+      b.dataset.kodlar = h.kodlar.join();
+      b.title = h.ad;
+      b.setAttribute('aria-label', h.ad);
+      b.addEventListener('click', function () {
+        durum.renk = h.kodlar.slice();
+        kiyasKapat();
+        guncelle();
+        ciz();
+      });
+      liste.appendChild(b);
+    });
+  }
+  function hazirBul() {
+    var s = durum.renk.join();
+    return (durum.desen.hazir || []).filter(function (h) { return h.kodlar.join() === s; })[0] || null;
   }
   function alanSec(i) {
     durum.alan = i;
@@ -481,8 +536,11 @@ html,body{margin:0;background:#fff;color:#000}
     adGoster(null);
     $('durum').innerHTML = '<b>' + kacis(d.alanlar[durum.alan].ad) + '</b> · ' + kacis(renkler[aktif].ad);
     $('sifirla').hidden = durum.renk.join() === varsayilan(d).join();
+    [].forEach.call(hazirKutu.querySelectorAll('.bmt-hazir-cip'), function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.kodlar === durum.renk.join()));
+    });
 
-    var ozet = '<dt>Desen</dt><dd>' + kacis(d.ad) + ' <small>' + kacis(d.koleksiyon) + '</small></dd>';
+    var ozet ='<dt>Desen</dt><dd>' + kacis(d.ad) + ' <small>' + kacis(d.koleksiyon) + '</small></dd>';
     d.alanlar.forEach(function (a, i) {
       var r = renkler[durum.renk[i]];
       ozet += '<dt>' + kacis(a.ad) + '</dt><dd>' + kacis(r.ad) + ' <small>' + r.kod + '</small></dd>';
@@ -506,8 +564,9 @@ html,body{margin:0;background:#fff;color:#000}
     return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)), r: r };
   }
   function alanNo(k) {
-    var h = durum.desen.harita;
-    return +h.v.charAt(Math.min(h.y - 1, Math.floor(k.y * h.y)) * h.g + Math.min(h.g - 1, Math.floor(k.x * h.g)));
+    var h = haritalar[durum.desen.id];
+    if (!h) return durum.alan;
+    return h.v[Math.min(h.y - 1, Math.floor(k.y * h.y)) * h.g + Math.min(h.g - 1, Math.floor(k.x * h.g))];
   }
   function lupaCiz(k) {
     var lc = $('lupa-tuval'), c = lc.getContext('2d');
@@ -568,11 +627,12 @@ html,body{margin:0;background:#fff;color:#000}
     etiket.hidden = true;
   });
 
-  /* Kıyas: desenin ürün renkleriyle üretilen önizleme ile ürünün gerçek fotoğrafı yan yana */
+  /* Kıyas: sitedeki bir ürünün renkleriyle üretilen önizleme ile o ürünün gerçek fotoğrafı yan yana.
+     Seçili renkler hazır bir seçenekse onun fotoğrafı, değilse desenin kendi renkleri ve fotoğrafı. */
   $('kiyas').addEventListener('click', function () {
     if (durum.kiyas) { kiyasKapat(); return; }
-    var d = durum.desen;
-    if (durum.renk.join() !== varsayilan(d).join()) { durum.renk = varsayilan(d); guncelle(); ciz(); }
+    var d = durum.desen, h = hazirBul();
+    if (!h && durum.renk.join() !== varsayilan(d).join()) { durum.renk = varsayilan(d); guncelle(); ciz(); }
     durum.kiyas = true;
     durum.lupa = false;
     $('yakin').setAttribute('aria-pressed', 'false');
@@ -581,7 +641,7 @@ html,body{margin:0;background:#fff;color:#000}
     hali.style.setProperty('--k', '50%');
     $('kiyas-kaydir').value = 50;
     this.setAttribute('aria-pressed', 'true');
-    $('orijinal').src = KOK + d.orijinal;
+    $('orijinal').src = KOK + (h ? h.orijinal : d.orijinal);
     $('orijinal').hidden = false;
     $('kiyas-cizgi').hidden = false;
     $('kiyas-ayar').hidden = false;
