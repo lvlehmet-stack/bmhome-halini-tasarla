@@ -308,6 +308,15 @@ html,body{margin:0;background:#fff;color:#000}
   ara.width = W; ara.height = H;
   var cizimNo = 0, ilk = true;
 
+  /* Üretim dosyasından gelen desenler daha yüksek çözünürlükte çizilir (dosyadaki ilmek keskinliği korunsun) */
+  function boyutAyarla(d) {
+    var o = d.olcu || VERI.olcu;
+    if (o[0] === W && o[1] === H) return;
+    W = o[0]; H = o[1];
+    [tuval, gecis, ara].forEach(function (c) { c.width = W; c.height = H; });
+    ilk = true;
+  }
+
   function bilesik(c, dokular, maskeler, golge) {
     c.globalCompositeOperation = 'source-over';
     c.drawImage(dokular[0], 0, 0, W, H);
@@ -395,25 +404,35 @@ html,body{margin:0;background:#fff;color:#000}
     durum.alan = 0;
     kiyasKapat();
     [].forEach.call(desenKutu.children, function (b) { b.setAttribute('aria-checked', String(b.dataset.id === d.id)); });
+    boyutAyarla(d);
     alanlariKur();
     guncelle();
     ciz();
     haritaHazirla(d);
   }
 
-  /* Dokunulan noktanın hangi alan olduğu: maskelerden küçük bir alan haritası (desen başına bir kez) */
+  /* Dokunulan noktanın hangi alan olduğu: maskelerden küçük bir alan haritası (desen başına bir kez).
+     Maskeler kademeli saydamlık taşır; her noktada iplik payları geri hesaplanır, en büyük pay o noktanın alanıdır. */
   var haritalar = {};
   function haritaHazirla(d) {
     if (haritalar[d.id]) return;
     Promise.all(d.alanlar.map(function (a) { return a.maske ? yukle(a.maske) : null; })).then(function (m) {
-      var g = Math.round(W / 8), y = Math.round(H / 8), c = document.createElement('canvas');
+      var g = 112, y = 161, n = g * y, c = document.createElement('canvas');
       c.width = g; c.height = y;
-      var x = c.getContext('2d', { willReadFrequently: true }), v = new Uint8Array(g * y);
+      var x = c.getContext('2d', { willReadFrequently: true }), alfa = [], v = new Uint8Array(n);
       for (var i = 1; i < m.length; i++) {
         x.clearRect(0, 0, g, y);
         x.drawImage(m[i], 0, 0, g, y);
-        var p = x.getImageData(0, 0, g, y).data;
-        for (var j = 0; j < v.length; j++) if (p[j * 4 + 3] > 127) v[j] = i;
+        alfa[i] = x.getImageData(0, 0, g, y).data;
+      }
+      for (var j = 0; j < n; j++) {
+        var kalan = 1, enIyi = 0, enPay = -1;
+        for (i = m.length - 1; i >= 1; i--) {
+          var pay = alfa[i][j * 4 + 3] / 255 * kalan;
+          kalan -= pay;
+          if (pay > enPay) { enPay = pay; enIyi = i; }
+        }
+        v[j] = kalan > enPay ? 0 : enIyi;
       }
       haritalar[d.id] = { g: g, y: y, v: v };
     }).catch(function () {});
