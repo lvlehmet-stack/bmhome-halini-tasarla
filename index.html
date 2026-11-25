@@ -11,10 +11,12 @@ html,body{margin:0;background:#fff;color:#000}
 .test-bandi{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 12px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   background:#000;color:#fff;font:400 12px/1.5 Lato,'Helvetica Neue',Arial,sans-serif;text-align:center}
 .test-bandi b{padding:1px 8px;border:1px solid #fff;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.test-bandi .test-not{flex-basis:100%;color:#cfcfcf}
 </style>
 </head>
 <body>
-<div class="test-bandi" lang="tr"><b>Test sürümü</b><span>Bu sayfa deneme aşamasındadır ve bmhome.com.tr'de henüz yayında değildir. Desen ve renk listesi örnektir, geliştirme sürdükçe değişecektir.</span></div>
+<div class="test-bandi" lang="tr"><b>Test sürümü</b><span>Bu sayfa deneme aşamasındadır ve bmhome.com.tr'de henüz yayında değildir. Desen ve renk listesi örnektir, geliştirme sürdükçe değişecektir.</span>
+<span class="test-not">MIST deseninde hazır renklerden birini seçip «Ürün fotoğrafıyla kıyasla» düğmesine basın: önizleme o ürünün kendi fotoğrafı kullanılmadan üretilir ve gerçek fotoğrafla yan yana gösterilir.</span></div>
 <div class="sarmal">
 <div class="bmt" id="bmt" lang="tr">
   <header class="bmt-bas">
@@ -334,16 +336,81 @@ html,body{margin:0;background:#fff;color:#000}
     c.globalCompositeOperation = 'source-over';
   }
 
-  function ciz() {
-    var no = ++cizimNo, d = durum.desen, kodlar = durum.renk.slice();
-    var bekle = setTimeout(function () { $('yukleniyor').hidden = false; }, 160);
+  /* Katman yöntemi: düz halı fotoğrafları alan maskeleriyle üst üste */
+  function katmanHazirla(d, kodlar) {
     return Promise.all([
       Promise.all(kodlar.map(function (k) { return yukle(dokuYolu(k)); })),
       Promise.all(d.alanlar.map(function (a) { return a.maske ? yukle(a.maske) : null; })),
       yukle(d.golge)
     ]).then(function (s) {
+      return function (c) { bilesik(c, s[0], s[1], s[2]); };
+    });
+  }
+
+  /* Görselden yöntem: gerçek ürün fotoğrafının ışığı/dokusu × iplik karışımı (doğrusal ışıkta).
+     oran.png: R,G,B = 2.-4. ipliğin payı (1. iplik kalan); isik-*.jpg: tabandaki ışık oranı (0..2, 127,5 = 1).
+     Hazır renkler kördür: kendi fotoğrafı taban olmaz, renkleri başka ürünlerde ölçülenlerden gelir. */
+  var pikselOnbellek = {};
+  function piksel(yol) {
+    if (!pikselOnbellek[yol]) {
+      pikselOnbellek[yol] = yukle(yol).then(function (im) {
+        var c = document.createElement('canvas');
+        c.width = im.naturalWidth; c.height = im.naturalHeight;
+        var x = c.getContext('2d', { willReadFrequently: true });
+        x.drawImage(im, 0, 0);
+        return x.getImageData(0, 0, c.width, c.height).data;
+      });
+      pikselOnbellek[yol].catch(function () { delete pikselOnbellek[yol]; });
+    }
+    return pikselOnbellek[yol];
+  }
+  var SRGB = new Uint8ClampedArray(4096);
+  for (var q = 0; q < 4096; q++) {
+    var l = q / 4095;
+    SRGB[q] = Math.round((l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055) * 255);
+  }
+  function Lstar(c) {
+    var y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    return y > 0.008856 ? 116 * Math.cbrt(y) - 16 : 903.3 * y;
+  }
+  function fotoSecim(d, kodlar) {
+    var h = hazirBul();
+    if (h && h.kor) {
+      return { renk: h.kor.renk, taban: d.tabanlar.filter(function (t) { return t.kodlar.join('-') === h.kor.taban; })[0] };
+    }
+    // yeni kombinasyon: renkler ürün fotoğraflarındaki ölçümlerden, taban bölge bölge açıklığı en yakın fotoğraf
+    var renk = kodlar.map(function (k) { return VERI.urun_renkleri[k]; }), taban = null, enIyi = Infinity;
+    d.tabanlar.forEach(function (t) {
+      var p = 0;
+      for (var i = 0; i < renk.length; i++) p += d.oranlar[i] * Math.abs(Lstar(t.renk[i]) - Lstar(renk[i]));
+      if (p < enIyi) { enIyi = p; taban = t; }
+    });
+    return { renk: renk, taban: taban };
+  }
+  function fotoHazirla(d, kodlar) {
+    var s = fotoSecim(d, kodlar), w = d.olcu[0], h = d.olcu[1];
+    return Promise.all([piksel(d.oran), piksel(s.taban.isik)]).then(function (p) {
+      var o = p[0], k = p[1], c0 = s.renk[0], c1 = s.renk[1], c2 = s.renk[2], c3 = s.renk[3];
+      var img = new ImageData(w, h), out = img.data, n = w * h;
+      for (var i = 0, j = 0; i < n; i++, j += 4) {
+        var f1 = o[j] / 255, f2 = o[j + 1] / 255, f3 = o[j + 2] / 255, f0 = 1 - f1 - f2 - f3;
+        if (f0 < 0) f0 = 0;
+        var r = k[j] * 4095 / 127.5;
+        out[j] = SRGB[Math.min(4095, r * (f0 * c0[0] + f1 * c1[0] + f2 * c2[0] + f3 * c3[0]) | 0)];
+        out[j + 1] = SRGB[Math.min(4095, r * (f0 * c0[1] + f1 * c1[1] + f2 * c2[1] + f3 * c3[1]) | 0)];
+        out[j + 2] = SRGB[Math.min(4095, r * (f0 * c0[2] + f1 * c1[2] + f2 * c2[2] + f3 * c3[2]) | 0)];
+        out[j + 3] = 255;
+      }
+      return function (ctx) { ctx.putImageData(img, 0, 0); };
+    });
+  }
+
+  function ciz() {
+    var no = ++cizimNo, d = durum.desen, kodlar = durum.renk.slice();
+    var bekle = setTimeout(function () { $('yukleniyor').hidden = false; }, 160);
+    return (d.yontem === 'foto' ? fotoHazirla(d, kodlar) : katmanHazirla(d, kodlar)).then(function (boya) {
       if (no !== cizimNo) return;
-      bilesik(gecis.getContext('2d'), s[0], s[1], s[2]);
+      boya(gecis.getContext('2d'));
       if (ilk || azHareket) { ilk = false; aktar(); return; }
       gecis.classList.remove('is-in');
       void gecis.offsetWidth;
@@ -364,6 +431,27 @@ html,body{margin:0;background:#fff;color:#000}
   /* Seçilen alanı halının üzerinde kısa bir parlamayla göster */
   function vurgula(i) {
     var v = $('vurgu'), c = v.getContext('2d'), d = durum.desen;
+    function parlat() {
+      v.classList.remove('is-on');
+      void v.offsetWidth;
+      v.classList.add('is-on');
+    }
+    if (d.yontem === 'foto') {
+      piksel(d.oran).then(function (o) {
+        if (d !== durum.desen) return;
+        var w = v.width, h = v.height, OW = d.olcu[0], OH = d.olcu[1], img = c.createImageData(w, h), out = img.data;
+        for (var y = 0; y < h; y++) {
+          for (var x = 0; x < w; x++) {
+            var j = (Math.floor(y * OH / h) * OW + Math.floor(x * OW / w)) * 4, t = (y * w + x) * 4;
+            out[t] = out[t + 1] = out[t + 2] = 255;
+            out[t + 3] = i === 0 ? 255 - o[j] - o[j + 1] - o[j + 2] : o[j + i - 1];
+          }
+        }
+        c.putImageData(img, 0, 0);
+        parlat();
+      });
+      return;
+    }
     var maskeler = d.alanlar.map(function (a) { return a.maske ? yukle(a.maske) : null; });
     Promise.all(maskeler).then(function (m) {
       if (d !== durum.desen) return;
@@ -416,6 +504,25 @@ html,body{margin:0;background:#fff;color:#000}
   var haritalar = {};
   function haritaHazirla(d) {
     if (haritalar[d.id]) return;
+    if (d.yontem === 'foto') {
+      piksel(d.oran).then(function (o) {
+        var g = 112, y = 161, v = new Uint8Array(g * y), OW = d.olcu[0], OH = d.olcu[1];
+        for (var yy = 0; yy < y; yy++) {
+          for (var xx = 0; xx < g; xx++) {
+            var pay = [0, 0, 0, 0];
+            for (var s = 0; s < 4; s++) {  // hücre içinde 2x2 örnek: çizgili karışımlarda tek piksel yanıltmasın
+              var j = (Math.floor((yy + .25 + (s >> 1) * .5) * OH / y) * OW + Math.floor((xx + .25 + (s & 1) * .5) * OW / g)) * 4;
+              pay[0] += 255 - o[j] - o[j + 1] - o[j + 2]; pay[1] += o[j]; pay[2] += o[j + 1]; pay[3] += o[j + 2];
+            }
+            var en = 0;
+            for (var i = 1; i < 4; i++) if (pay[i] > pay[en]) en = i;
+            v[yy * g + xx] = en;
+          }
+        }
+        haritalar[d.id] = { g: g, y: y, v: v };
+      }).catch(function () {});
+      return;
+    }
     Promise.all(d.alanlar.map(function (a) { return a.maske ? yukle(a.maske) : null; })).then(function (m) {
       var g = 112, y = 161, n = g * y, c = document.createElement('canvas');
       c.width = g; c.height = y;
